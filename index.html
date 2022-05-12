@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">    
+    <title>Teste</title>
+</head>
+<style>
+    /* width */
+    ::-webkit-scrollbar {
+        width: 10px;
+        border-radius: 15px;
+    }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+<body>
+    <section class="container">
+        <div class="card" style="margin-top:50px;display:none" id="cardCommit">
+            <div class="card-body" style="height: 300px;overflow:auto">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Informações de Commit</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-danger btn-flat btn-sm" style="float:right" id="btnCloseCardCommit">Fechar</button>
+                    </div>
+                    <div class="col-md-12">
+                        <hr>
+                    </div>
+                    <div class="col-md-4">
+                        <b><span>Data Commit: </span></b><br><span id="spanDataCommit" class="btnSpanCommit"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <b><span>Autor: </span></b><br><span id="spanAutor" class="btnSpanCommit"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <b><span>Mensagem: </span></b><br><span id="spanMsg" class="btnSpanCommit"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+       
+        <div class="row">
+            <div class="col-md-12" style="height:550px;overflow:auto;margin-top: 50px;">
+                <table class="table table_data">
+                    <thead>
+                        <th>Repositório</th> 
+                        <th>Criação</th>     
+                        <th>Ações</th>                  
+                    </thead>
+                    <tbody>
+                     
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    <footer>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+        <script type="module">
+            import { Octokit } from "https://cdn.skypack.dev/@octokit/core";
+
+            const octokit = new Octokit({
+                auth: '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'
+            })
+
+            const response = await octokit.request('GET /users/{username}/repos', {
+                username: 'guittex'
+            });
+
+            $(document).ready(function() {
+                $('#accordion').collapse()
+
+                var table = $('.table_data').DataTable({
+                    'paging': false,
+                    language: {
+                        searchPlaceholder: "Digite para pesquisar",
+                        "sEmptyTable": "Nenhum registro encontrado",
+                        "sInfo": "Mostrando de _START_ até _END_ de _TOTAL_ registros",
+                        "sInfoEmpty": "Mostrando 0 até 0 de 0 registros",
+                        "sInfoFiltered": "(Filtrados de _MAX_ registros)",
+                        "sInfoPostFix": "",
+                        "sInfoThousands": ".",
+                        "sLengthMenu": "_MENU_ Resultados",
+                        "sLoadingRecords": "Carregando...",
+                        "sProcessing": "Processando...",
+                        "sZeroRecords": "Nenhum registro encontrado",
+                        "sSearch": "",
+                        "oPaginate": {
+                            "sNext": "Próximo",
+                            "sPrevious": "Anterior",
+                            "sFirst": "Primeiro",
+                            "sLast": "Último"
+                        },
+                        "oAria": {
+                            "sSortAscending": ": Ordenar colunas de forma ascendente",
+                            "sSortDescending": ": Ordenar colunas de forma descendente"
+                        }
+                    }
+                });
+
+                $(response.data).each(function(){
+                    var data = new Date(this.created_at)
+                    var btnCommits = `<button class="btn btn-sm btn-primary btnCommit" attr-name="${this.name}">Ver Commits</button>`
+
+                    table.row.add([
+                        this.name,
+                        data.toLocaleDateString("pt-BR"),
+                        btnCommits
+                    ])
+                    .draw()
+                    .nodes()
+                    .to$();
+                }); 
+
+                $(".btnCommit").on("click", function(){
+                    $('.btnSpanCommit').html('');
+
+                    async function callFunction(x) {
+                        let commit = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+                            owner: 'guittex',
+                            repo: x
+                        })
+
+                        $(commit.data).each(function(){
+                            var dataCommit = new Date(this.commit.author.date);
+
+                            $("#spanDataCommit").append(dataCommit.toLocaleDateString("pt-BR") + "<br>");
+                            $("#spanAutor").append(this.commit.author.name + "<br>");
+                            $("#spanMsg").append(this.commit.message + "<br>");
+                        });
+                    }
+
+                    callFunction($(this).attr("attr-name"));
+
+                    $("#cardCommit").fadeIn();
+                });
+
+                $("#btnCloseCardCommit").on("click", function(){
+                    $("#cardCommit").fadeOut();
+                });
+            });
+
+            
+
+            
+            // async function adicionar1(x) {
+            //     const este = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+            //         owner: 'guittex',
+            //         repo: x
+            //     })
+
+            //     console.log(este);
+            // }
+
+        
+        </script>
+        <script>
+            
+        </script>
+
+    </footer>
+</body>
+</html>
